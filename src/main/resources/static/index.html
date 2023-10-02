@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AngularPay Subscriptions</title>
+    <link href="webjars/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="main.css" rel="stylesheet">
+    <script src="https://www.google.com/recaptcha/api.js?render=6LezoUEdAAAAAOhJMDU1X6juxzPsB9bHXcYUfCXe"></script>
+</head>
+<body>
+<noscript><h2 style="color: #ff0000">Seems your browser doesn't support Javascript! Websocket relies on Javascript being
+    enabled. Please enable
+    Javascript and reload this page!</h2></noscript>
+<div id="main-content" class="container">
+    <div class="row">
+        <div class="col">
+            <h1 class="display-4">AngularPay Subscriptions</h1>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <form name='test-subscription-form' id='test-subscription-form' action="/subscriptions" method="POST">
+                <div class="form-group">
+                    <label for="subscriber_name">Your name:</label>
+                    <input type="text" name="subscriber_name" id="subscriber_name" class="form-control"
+                           placeholder="Enter your full name">
+
+                    <label for="subscriber_email">Your email:</label>
+                    <input type="text" name="subscriber_email" id="subscriber_email" class="form-control"
+                           placeholder="Enter your email">
+
+                    <h3 class="h3">Subscriptions</h3>
+
+                    <div class="form-check">
+                        <input class="form-check-input position-static" type="checkbox" name="subscriptions"
+                               id="early-access-subscription" value="MVP_EARLY_ACCESS">
+                        <label for="early-access-subscription">MVP Early Access</label>
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input position-static" type="checkbox" name="subscriptions"
+                               id="newsletter-subscription" value="NEWSLETTERS">
+                        <label for="newsletter-subscription">Newsletters</label>
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input position-static" type="checkbox" name="subscriptions"
+                               id="blogposts-subscription" value="BLOGPOSTS">
+                        <label for="blogposts-subscription">Blog Posts</label>
+                    </div>
+                </div>
+                <button class="btn btn-light" id="sign-up-button" type="submit">Sign me up!</button>
+            </form>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <h3 class="h3 text-muted" id="subscriptions_response"></h3>
+        </div>
+    </div>
+</div>
+<script>
+    document.getElementById("sign-up-button").onclick = function (e) {
+        e.preventDefault();
+
+        const subscriptions_response = document.getElementById("subscriptions_response");
+        subscriptions_response.innerText = "Subscribing...";
+        subscriptions_response.classList.remove("text-danger");
+        subscriptions_response.classList.remove("text-success");
+        subscriptions_response.classList.add("text-muted");
+
+        grecaptcha.ready(function () {
+            grecaptcha.execute('6LezoUEdAAAAAOhJMDU1X6juxzPsB9bHXcYUfCXe', {action: 'subscriptions'})
+                .then(function (token) {
+
+                    const checkboxes = document.getElementsByName("subscriptions");
+                    const subscriptions = Array.prototype.slice.call(checkboxes)
+                        .filter(x => x.checked === true)
+                        .map(x => x.value);
+
+                    const headers = new Headers();
+                    headers.append("Content-Type", "application/json");
+
+                    const request = JSON.stringify({
+                        "subscriber_name": document.getElementById("subscriber_name").value,
+                        "email": document.getElementById("subscriber_email").value,
+                        "subscriptions": subscriptions,
+                        "recaptcha": {
+                            "recaptcha_token": token,
+                            "action_name": "subscriptions"
+                        }
+                    });
+
+                    const options = {
+                        method: 'POST',
+                        headers: headers,
+                        body: request
+                    };
+
+                    fetch("/subscriptions", options)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw response;
+                            }
+                            return response.json();
+                        })
+                        .then(result => {
+                            console.log(result);
+                            subscriptions_response.innerText = "Successfully subscribed!";
+                            subscriptions_response.classList.remove("text-muted");
+                            subscriptions_response.classList.remove("text-danger");
+                            subscriptions_response.classList.add("text-success");
+                        })
+                        .catch(error => {
+                            console.log('error', error);
+                            subscriptions_response.innerText = "Subscription failed! Please try again!";
+                            subscriptions_response.classList.remove("text-muted");
+                            subscriptions_response.classList.remove("text-success");
+                            subscriptions_response.classList.add("text-danger");
+                        });
+                });
+        });
+    };
+</script>
+</body>
+</html>
